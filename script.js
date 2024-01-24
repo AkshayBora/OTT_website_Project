@@ -1,5 +1,7 @@
 "use strict";
+
 const MOVIEURL = "https://api.tvmaze.com/search/shows?q=girls"
+//const MOVIEURL = "https://api.tvmaze.com/shows?q=1"
 
 const addEventOnElements = function(elements,eventType,callback){
     for (const elem of elements) {
@@ -20,13 +22,14 @@ const pageContent = document.querySelector(".container")
 const fetchData = async() => {
     const data = await fetch(MOVIEURL);
     const json = await data.json();
-    heroBanner(json)
-    createMovieList(json)
-    
+    //console.log(json);
+    heroBanner(json);
+    createMovieList(json);
+    search(json)
 }
 
 const heroBanner = (value) => {
-    console.log(value)
+    //console.log(value)
     const banner = document.createElement("section");
     banner.classList.add("banner");
     banner.ariaLabel = "Popular Movies";
@@ -43,7 +46,7 @@ const heroBanner = (value) => {
 
     value.map((val)=>{
         const img = "https://wallpapers.com/images/hd/avengers-endgame-mghdp4gaqzu4q4us.jpg"
-        let {id,name,genres,rating,image,summary,language} = val.show
+        let {name,genres,rating,image,summary,language} = val.show
         const sliderItem = document.createElement("div")
         sliderItem.classList.add("slider-item")
         sliderItem.setAttribute("slider-item","")
@@ -129,7 +132,7 @@ const createMovieList = function(value){
     
     let gens = [ "Drama","Romance","Comedy","Science-Fiction","Crime","Thriller","Supernatural"]
     let result1 = value;
-    for(let i=0;i<5;i++){
+    for(let i=0;i<7;i++){
         let result = []
         for(let k=0; k<result1.length;k++){
             for(let j=0;j<result1[k].show.genres.length;j++){
@@ -140,7 +143,7 @@ const createMovieList = function(value){
                 }
             }
         }
-        console.log(result)
+        //console.log(result)
         const movieListElem = document.createElement("section")
         movieListElem.classList.add("movie-list")
         movieListElem.innerHTML = `
@@ -185,6 +188,62 @@ const createMovieList = function(value){
 }
 
 
+function search(val){
+    //console.log(val);
+    const searchWrapper = document.querySelector(".search-wrapper")
+    const searchField = document.querySelector(".search-field");
+
+    const searchResultModal = document.createElement("div")
+    searchResultModal.classList.add("search-modal")
+    document.querySelector("main").appendChild(searchResultModal)
+
+    let searchTimeout ;
+
+    searchField.addEventListener("input",function(){
+        console.log(searchField.value.length);
+        if(!searchField.value.trim()){
+            searchResultModal.classList.remove("active")
+            searchWrapper.classList.remove("searching");
+            clearTimeout(searchTimeout);
+            return;
+        }
+
+        searchWrapper.classList.add("searching");
+        clearTimeout(searchTimeout);
+
+
+        searchTimeout = setTimeout(async function(){
+            const searchValue = await fetch(`https://api.tvmaze.com/search/shows?q=${searchField.value}`)
+            const searchJson = await searchValue.json();
+            //console.log(searchJson);
+            function mySearchValue(searchJson) {
+                searchWrapper.classList.remove("searching")
+                searchResultModal.classList.add("active")
+                searchResultModal.innerHTML= "";
+
+                searchResultModal.innerHTML=`
+                <p class="label">Results for</p>
+                <h1 class="heading">${searchField.value}</h1>
+                <div class="movie-list">
+                    <div class="grid-list">
+                    </div>
+                </div>
+                
+                `
+                for(const val of searchJson){
+                    const movieCard = createMoviecard(val);
+                    searchResultModal.querySelector(".grid-list").appendChild(movieCard);
+
+                }
+
+            }
+
+            mySearchValue(searchJson);
+        },500) 
+    })
+}
+
+
 function createMoviecard(val){
     const img = "https://wallpapers.com/images/hd/avengers-endgame-mghdp4gaqzu4q4us.jpg"
     let {id,name,genres,rating,image,summary,language} = val.show
@@ -194,7 +253,7 @@ function createMoviecard(val){
 
     card.innerHTML = `
     <figure class="poster-box card-banner">
-        <img src="${image?.original || img}" alt="${name}" class="img-cover" loading="lazy"/>
+        <img src="${image?.original || img}" alt="${name}" class="img-cover" loading="eager"/>
     </figure>
     <h4 class="title">${name}</h4>
     <div class="meta-list">
@@ -206,13 +265,14 @@ function createMoviecard(val){
             alt="star-rating"
             loading="lazy"
             />
-            <span class="span">${rating.average}</span>
+            
+            <span class="span">${rating.average || 7.5}</span>
         </div>
     <div class="card-badge">${language}</div>
     <a href="" class="card-btn" title="${name}"></a>
     `
 
-    return card
+    return card;
 }
 
-
+//search();
